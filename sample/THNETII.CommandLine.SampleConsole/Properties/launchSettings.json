@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "THNETII.CommandLine.SampleConsole": {
+      "commandName": "Project",
+      "commandLineArgs": "[config:Environment=Development]"
+    }
+  }
+}
