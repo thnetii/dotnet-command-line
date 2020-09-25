@@ -19,7 +19,9 @@ namespace THNETII.CommandLine.Hosting
         private static readonly Func<string[], IHostBuilder> defaultCreateHost =
             Host.CreateDefaultBuilder;
 
+        /// <param name="cmdBuilder">The command line builder instance to configure.</param>
         /// <param name="definition">The command line definition instance for the application root command.</param>
+        /// <param name="createHostBuilder">The construction function that creates a new <see cref="IHostBuilder"/> for the .NET Generic Host.</param>
         /// <seealso cref="HostingExtensions.UseHost(CommandLineBuilder, Func{string[], IHostBuilder}, Action{IHostBuilder})"/>
         public static CommandLineBuilder UseHostWithDefinition(
             this CommandLineBuilder cmdBuilder,
