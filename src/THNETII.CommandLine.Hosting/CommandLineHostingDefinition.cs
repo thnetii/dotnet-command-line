@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using System.ComponentModel;
 using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -93,9 +95,14 @@ namespace THNETII.CommandLine.Hosting
         /// <item>An empty string.</item>
         /// </list>
         /// </returns>
-        protected static string GetAssemblyDescription()
+        protected static string GetAssemblyDescription() =>
+            GetAssemblyDescription(typeof(TExecutor));
+
+        /// <inheritdoc cref="GetAssemblyDescription()"/>
+        protected static string GetAssemblyDescription(Type executorType)
         {
-            Type executorType = typeof(TExecutor);
+            _ = executorType ?? throw new ArgumentNullException(nameof(executorType));
+
             Assembly programAssembly = executorType.Assembly;
             string? description = programAssembly
                 .GetCustomAttribute<AssemblyDescriptionAttribute>()?
