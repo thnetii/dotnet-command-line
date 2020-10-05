@@ -20,27 +20,31 @@ namespace THNETII.CommandLine.SampleConsole
     {
         public static Task<int> Main(string[] args)
         {
-            var definition = new CommandLineDefinition();
-            var cmdParser = new CommandLineBuilder(definition.Command)
+            var cmdRoot = new RootCommand(CommandLineHost.GetAssemblyDescription(typeof(Program)))
+            { Handler = CommandLineHost.GetCommandHandler<CommandLineApplication>() };
+            cmdRoot.AddOption(new Option<string>(new[] { "--subject", "-s" })
+            {
+                Name = nameof(CommandLineOptions.Subject),
+                Description = "The subject to greet",
+                Argument = { Name = "NAME", Arity = ArgumentArity.ZeroOrOne },
+            });
+
+            var cmdParser = new CommandLineBuilder(cmdRoot)
                 .UseDefaults()
-                .UseHostingDefinition(definition, CreateHostBuilder)
+                .UseHost(CreateHostBuilder)
                 .Build();
             return cmdParser.InvokeAsync(args ?? Array.Empty<string>());
         }
 
         public static IHostBuilder CreateHostBuilder(string[] args)
         {
-            var hostBuilder = Host.CreateDefaultBuilder(args ?? Array.Empty<string>())
-                .ConfigureEmbeddedAppConfiguration(typeof(Program).Assembly)
-                .ConfigureCommandLineInvocation()
-                ;
-
-            hostBuilder.ConfigureServices(serivces =>
+            var hostBuilder = CommandLineHost
+                .CreateDefaultBuilder(args ?? Array.Empty<string>());
+            hostBuilder.ConfigureServices(services =>
             {
-                serivces.AddOptions<CommandLineOptions>()
+                services.AddOptions<CommandLineOptions>()
                     .Configure<IConfiguration>((opts, config) =>
-                        config.Bind("CommandLine", opts)
-                        )
+                        config.Bind("CommandLineOptions", opts))
                     .BindCommandLine()
                     ;
             });
@@ -51,14 +55,14 @@ namespace THNETII.CommandLine.SampleConsole
 
     public class CommandLineApplication : ICommandLineExecutor
     {
-        private readonly CommandLineOptions options;
+        private readonly IOptions<CommandLineOptions> options;
         private readonly ILogger<CommandLineApplication> logger;
 
         public CommandLineApplication(
             IOptions<CommandLineOptions> options,
             ILogger<CommandLineApplication>? logger = null)
         {
-            this.options = options?.Value
+            this.options = options
                 ?? throw new ArgumentNullException(nameof(options));
             this.logger = logger ?? Microsoft.Extensions.Logging.Abstractions
                 .NullLogger<CommandLineApplication>.Instance;
@@ -67,7 +71,7 @@ namespace THNETII.CommandLine.SampleConsole
         public Task<int> RunAsync(CancellationToken cancelToken = default)
         {
             logger.LogInformation("Hello {Subject} from {Method}",
-                options.Subject, nameof(RunAsync));
+                options.Value.Subject, nameof(RunAsync));
 
             return Task.FromResult(0);
         }
@@ -76,24 +80,5 @@ namespace THNETII.CommandLine.SampleConsole
     public class CommandLineOptions
     {
         public string Subject { get; set; } = "World";
-    }
-
-    public class CommandLineDefinition : CommandLineHostingDefinition<CommandLineApplication>
-    {
-        public CommandLineDefinition() : base()
-        {
-            Command = new RootCommand(GetAssemblyDescription())
-            { Handler = CommandHandler };
-
-            SubjectArgument = new Argument<string>()
-            {
-                Name = nameof(CommandLineOptions.Subject),
-                Arity = ArgumentArity.ZeroOrOne,
-            };
-            Command.AddArgument(SubjectArgument);
-        }
-
-        public override Command Command { get; }
-        public Argument<string> SubjectArgument { get; }
     }
 }
