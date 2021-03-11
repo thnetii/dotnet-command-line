@@ -34,21 +34,37 @@ namespace THNETII.CommandLine.Hosting
             if (assembly is null)
                 return hostBuilder;
 
-            return hostBuilder.ConfigureAppConfiguration((context, config) =>
+            hostBuilder.ConfigureHostConfiguration(config =>
             {
-                var executorAssembly = assembly;
-                var fileProvider = new EmbeddedFileProvider(executorAssembly);
+                InsertConfigurationSource(config, assembly, (config, fileProvider) =>
+                {
+                    config.AddJsonFile(fileProvider,
+                        $"appsettings.json",
+                        optional: true, reloadOnChange: true);
+                });
+            });
+            hostBuilder.ConfigureAppConfiguration((context, config) =>
+            {
                 var hostingEnvironment = context.HostingEnvironment;
+                InsertConfigurationSource(config, assembly, (config, fileProvider) =>
+                {
+                    config.AddJsonFile(fileProvider,
+                        $"appsettings.{hostingEnvironment.EnvironmentName}.json",
+                        optional: true, reloadOnChange: true);
+                });
+            });
+
+            static void InsertConfigurationSource(
+                IConfigurationBuilder config,
+                Assembly assembly,
+                Action<IConfigurationBuilder, EmbeddedFileProvider> configurationAction)
+            {
+                var fileProvider = new EmbeddedFileProvider(assembly);
 
                 var sources = config.Sources;
                 int originalSourcesCount = sources.Count;
 
-                config.AddJsonFile(fileProvider,
-                    $"appsettings.json",
-                    optional: true, reloadOnChange: true);
-                config.AddJsonFile(fileProvider,
-                    $"appsettings.{hostingEnvironment.EnvironmentName}.json",
-                    optional: true, reloadOnChange: true);
+                configurationAction.Invoke(config, fileProvider);
 
                 const int insert_idx = 1;
                 for (int i_dst = insert_idx, i_src = originalSourcesCount;
@@ -58,7 +74,8 @@ namespace THNETII.CommandLine.Hosting
                     sources.RemoveAt(i_src);
                     sources.Insert(i_dst, configSource);
                 }
-            });
+            }
+            return hostBuilder;
         }
     }
 }
