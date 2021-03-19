@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <LangVersion>9</LangVersion>
     <TargetFrameworks>netstandard2.1;netcoreapp3.1;netstandard2.0</TargetFrameworks>
     <TargetFrameworks Condition="$([System.Runtime.InteropServices.RuntimeInformation]::ISOsPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))"
                       >$(TargetFrameworks);net461</TargetFrameworks>

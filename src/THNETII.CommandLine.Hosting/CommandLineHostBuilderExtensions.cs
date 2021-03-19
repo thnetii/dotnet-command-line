@@ -1,5 +1,9 @@
 using System;
+using System.CommandLine.Binding;
+using System.CommandLine.Builder;
 using System.CommandLine.Hosting;
+using System.Threading;
+using System.Threading.Tasks;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -67,6 +71,51 @@ namespace THNETII.CommandLine.Hosting
                     ? config
                     : config.GetSection(configSectionPath);
             }
+        }
+
+        /// <summary>
+        /// Abandons a running invocation if multiple signals for process termination have been intercepted.
+        /// <para>This enables the application to forego attempts at graceful shutdown and will immediately return the invocation pipeline.</para>
+        /// </summary>
+        /// <param name="builder"></param>
+        /// <returns></returns>
+        public static CommandLineBuilder AbandonOnRepeatedCancellation(
+            this CommandLineBuilder builder)
+        {
+            _ = builder ?? throw new ArgumentNullException(nameof(builder));
+
+            builder.UseMiddleware(async (context, next) =>
+            {
+                var initialCancelToken = context.GetCancellationToken();
+                var repeatCancellationTcs = new TaskCompletionSource<object>();
+                ConsoleCancelEventHandler repeatConsoleCancelHandler = (state, e) =>
+                {
+                    _ = repeatCancellationTcs.TrySetCanceled();
+                };
+                using var initialCancelReg = initialCancelToken.Register(s =>
+                {
+                    var eHandler = (ConsoleCancelEventHandler)s!;
+                    Console.CancelKeyPress += eHandler;
+                }, repeatConsoleCancelHandler);
+
+                try
+                {
+                    _ = await Task.WhenAny(next(context), repeatCancellationTcs.Task)
+                        .ConfigureAwait(continueOnCapturedContext: false);
+                }
+                catch (OperationCanceledException) when (new ModelBinder<IHost>().CreateInstance(context.BindingContext) is IHost host)
+                {
+                    await host.StopAsync(new CancellationToken(canceled: true))
+                        .ConfigureAwait(continueOnCapturedContext: false);
+                    throw;
+                }
+                finally
+                {
+                    Console.CancelKeyPress -= repeatConsoleCancelHandler;
+                }
+            });
+
+            return builder;
         }
     }
 }
