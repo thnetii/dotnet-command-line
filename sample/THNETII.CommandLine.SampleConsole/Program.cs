@@ -22,7 +22,7 @@ namespace THNETII.CommandLine.SampleConsole
         {
             var cmdRoot = new RootCommand(CommandLineHost.GetAssemblyDescription(typeof(Program)))
             { Handler = CommandLineHost.GetCommandHandler<CommandLineApplication>() };
-            cmdRoot.AddOption(new Option<string>(new[] { "--subject", "-s" })
+            cmdRoot.AddOption(new Option<string>(["--subject", "-s"])
             {
                 Name = nameof(CommandLineOptions.Subject),
                 Description = "The subject to greet",
@@ -33,13 +33,13 @@ namespace THNETII.CommandLine.SampleConsole
                 .UseDefaults()
                 .UseHost(CreateHostBuilder)
                 .Build();
-            return cmdParser.InvokeAsync(args ?? Array.Empty<string>());
+            return cmdParser.InvokeAsync(args ?? []);
         }
 
         public static IHostBuilder CreateHostBuilder(string[] args)
         {
             var hostBuilder = CommandLineHost
-                .CreateDefaultBuilder(args ?? Array.Empty<string>());
+                .CreateDefaultBuilder(args ?? []);
             hostBuilder.ConfigureServices(services =>
             {
                 services.AddOptions<CommandLineOptions>()
@@ -53,20 +53,15 @@ namespace THNETII.CommandLine.SampleConsole
         }
     }
 
-    public class CommandLineApplication : ICommandLineExecutor
+    public class CommandLineApplication(
+        IOptions<CommandLineOptions> options,
+        ILogger<CommandLineApplication>? logger = null) : ICommandLineExecutor
     {
-        private readonly IOptions<CommandLineOptions> options;
-        private readonly ILogger<CommandLineApplication> logger;
-
-        public CommandLineApplication(
-            IOptions<CommandLineOptions> options,
-            ILogger<CommandLineApplication>? logger = null)
-        {
-            this.options = options
-                ?? throw new ArgumentNullException(nameof(options));
-            this.logger = logger ?? Microsoft.Extensions.Logging.Abstractions
+        private readonly IOptions<CommandLineOptions> options =
+            options ?? throw new ArgumentNullException(nameof(options));
+        private readonly ILogger<CommandLineApplication> logger =
+            logger ?? Microsoft.Extensions.Logging.Abstractions
                 .NullLogger<CommandLineApplication>.Instance;
-        }
 
         public Task<int> RunAsync(CancellationToken cancelToken = default)
         {

@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\submodules\thnetii\dotnet-common\src\THNETII.Common\THNETII.Common.csproj">
+    <ProjectReference Include="..\..\.submodules\thnetii\dotnet-common\src\THNETII.Common\THNETII.Common.csproj">
       <PrivateAssets>All</PrivateAssets>
     </ProjectReference>
   </ItemGroup>
